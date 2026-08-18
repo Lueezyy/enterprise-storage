@@ -1,0 +1,14 @@
+target/
+*.class
+
+*.db
+
+__pycache__/
+*.pyc
+venv/
+env/
+.venv/
+
+.vscode/
+.DS_Store
+Thumbs.db
