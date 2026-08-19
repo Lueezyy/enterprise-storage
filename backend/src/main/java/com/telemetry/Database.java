@@ -4,9 +4,21 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Database {
+    public static class TelemetryRow {
+        public long id;
+        public String deviceId;
+        public double capacityUtilization;
+        public double temperature;
+        public String recordedAt;
+    }
+
     private static final String DB_URL = "jdbc:sqlite:telemetry.db";
 
     public static Connection connect() throws SQLException {
@@ -30,6 +42,30 @@ public class Database {
         }
     }
 
+    public static List<TelemetryRow> getAllTelemetry() throws SQLException {
+        String sql = "SELECT id, device_id, capacity_utilization, temperature, recorded_at " + 
+                     "FROM telemetry ORDER BY recorded_at DESC";
+        
+        List<TelemetryRow> rows = new ArrayList<>();
+
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                TelemetryRow row = new TelemetryRow();
+                row.id = rs.getLong("id");
+                row.deviceId = rs.getString("device_id");
+                row.capacityUtilization = rs.getDouble("capacity_utilization");
+                row.temperature = rs.getDouble("temperature");
+                row.recordedAt = rs.getString("recorded_at");
+                rows.add(row);
+            }
+        }
+
+        return rows;
+    }
+
     public static void initSchema() {
         String sql = """
                 CREATE TABLE IF NOT EXISTS telemetry (
@@ -46,7 +82,7 @@ public class Database {
             stmt.execute(sql);
             System.out.println("telemetry table ready.");
         } catch (SQLException e) {
-                System.err.println("Failed to initialize schema: " + e.getMessage());
+            System.err.println("Failed to initialize schema: " + e.getMessage());
         }
     }
 }

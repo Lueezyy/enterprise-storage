@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 
 public class Main {
     static class TelemetryPayload {
@@ -36,10 +35,34 @@ public class Main {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                sendResponse(exchange, 405, "Only POST is supported right now");
-                return;
+            String method = exchange.getRequestMethod();
+
+            if ("GET".equalsIgnoreCase(method)) {
+                handleGet(exchange);
+            } else if ("POST".equalsIgnoreCase(method)) {
+                handlePost(exchange);
+            } else {
+                sendResponse(exchange, 405, "Only GET and POST are supported");
             }
+        }
+
+        private void handleGet(HttpExchange exchange) throws IOException {
+            try {
+                var rows = Database.getAllTelemetry();
+                String json = gson.toJson(rows);
+                byte[] responseBytes = json.getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, responseBytes.length);
+                OutputStream os = exchange.getResponseBody();
+                os.write(responseBytes);
+                os.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                sendResponse(exchange, 500, "Failed to fetch telemetry: " + e.getMessage());
+            }
+        }
+
+        private void handlePost(HttpExchange exchange) throws IOException {
 
             InputStream is = exchange.getRequestBody();
             String body = new String(is.readAllBytes(), StandardCharsets.UTF_8);
