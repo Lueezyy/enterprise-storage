@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
 
 public class Database {
     private static final String DB_URL = "jdbc:sqlite:telemetry.db";
@@ -15,6 +16,18 @@ public class Database {
             throw new SQLException("SQLite JDBC driver not found in classpath", e);
         }
         return DriverManager.getConnection(DB_URL);
+    }
+
+    public static void insertTelemetry(String deviceId, double capacityUtilization, double temperature) throws SQLException {
+        String sql = "INSERT INTO telemetry (device_id, capacity_utilization, temperature) VALUES (?, ?, ?)";
+
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, deviceId);
+            stmt.setDouble(2, capacityUtilization);
+            stmt.setDouble(3, temperature);
+            stmt.executeUpdate();
+        }
     }
 
     public static void initSchema() {
