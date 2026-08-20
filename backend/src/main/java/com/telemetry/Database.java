@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Database {
+
     public static class TelemetryRow {
         public long id;
         public String deviceId;
@@ -27,7 +28,11 @@ public class Database {
         } catch (ClassNotFoundException e) {
             throw new SQLException("SQLite JDBC driver not found in classpath", e);
         }
-        return DriverManager.getConnection(DB_URL);
+        Connection conn = DriverManager.getConnection(DB_URL);
+        try (Statement pragma = conn.createStatement()) {
+            pragma.execute("PRAGMA foreign_keys = ON");
+        }
+        return conn;
     }
 
     public static void insertTelemetry(String deviceId, double capacityUtilization, double temperature) throws SQLException {
@@ -67,20 +72,41 @@ public class Database {
     }
 
     public static void initSchema() {
-        String sql = """
-                CREATE TABLE IF NOT EXISTS telemetry (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    device_id TEXT NOT NULL,
-                    capacity_utilization REAL,
-                    temperature REAL,
-                    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-                """;
+        String createServers = """
+            CREATE TABLE IF NOT EXISTS servers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                hostname TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """;
             
+        String createStorageDevices = """
+            CREATE TABLE IF NOT EXISTS storage_devices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sever_id INTEGER NOT NULL,
+                device_name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (server_id) REFERENCES servers(id)
+            );
+            """;
+
+        String createTelemetry = """
+            CREATE TABLE IF NOT EXISTS telemetry (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                device_id INTEGER NOT NULL,
+                capacity_utilization REAL,
+                temperature REAL,
+                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KWY (device_id) REFERENCES storage_devices(id)
+            );
+            """;
+        
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
-            System.out.println("telemetry table ready.");
+            stmt.execute(createServers);
+            stmt.execute(createStorageDevices);
+            stmt.execute(createTelemetry);
+            System.out.println("Schema ready: servers, storage_devices, telemetry.");
         } catch (SQLException e) {
             System.err.println("Failed to initialize schema: " + e.getMessage());
         }
