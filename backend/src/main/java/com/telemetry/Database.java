@@ -83,7 +83,7 @@ public class Database {
         String createStorageDevices = """
             CREATE TABLE IF NOT EXISTS storage_devices (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sever_id INTEGER NOT NULL,
+                server_id INTEGER NOT NULL,
                 device_name TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (server_id) REFERENCES servers(id)
@@ -97,7 +97,7 @@ public class Database {
                 capacity_utilization REAL,
                 temperature REAL,
                 recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KWY (device_id) REFERENCES storage_devices(id)
+                FOREIGN KEY (device_id) REFERENCES storage_devices(id)
             );
             """;
         
